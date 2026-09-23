@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Turkey — A Curated Guide</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --crimson:#C1272D; --teal:#1C1C1E; --gold:#C69214;
+      --sea:#C1272D; --sand:#F6F3F1; --off:#ECE6E1;
+      --dark:#8E1B21; --mid:#77726E; --text:#1C1C1E; --border:#E3DCD6;
+    }
+    *{margin:0;padding:0;box-sizing:border-box;}
+    html,body{height:100%;}
+    body{font-family:'Inter',sans-serif;background:var(--sand);color:var(--text);display:flex;flex-direction:column;min-height:100vh;}
+    .hero{background:var(--crimson);
+          padding:.85rem 1.5rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.8rem;flex-shrink:0;}
+    .hero-left{display:flex;align-items:center;gap:.9rem;flex-wrap:wrap;}
+    .hero-mark{flex-shrink:0;}
+    .hero h1{font-family:'Fraunces',serif;font-size:1.9rem;font-weight:600;color:#fff;letter-spacing:-.015em;line-height:1;}
+    .hero-sub{color:rgba(255,255,255,.9);font-size:.66rem;letter-spacing:.16em;text-transform:uppercase;font-weight:600;line-height:1;}
+    .hero-right{display:flex;flex-direction:row;align-items:center;gap:.9rem;flex-wrap:wrap;justify-content:flex-end;}
+    .dest-toggle{display:flex;gap:.35rem;}
+    .dest-btn{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.55);
+              border-radius:20px;padding:.3rem .7rem;font-family:'Inter';font-size:.72rem;font-weight:700;cursor:pointer;transition:all .15s;}
+    .dest-btn.active{background:#fff;color:var(--crimson);border-color:#fff;}
+    .tips-link{font-size:.66rem;color:rgba(255,255,255,.85);cursor:pointer;text-decoration:underline;}
+    .panel-controls{padding:.7rem .8rem;border-bottom:1px solid var(--border);flex-shrink:0;background:#fff;}
+    .search-box{width:100%;padding:.5rem .8rem;border:1.5px solid var(--border);border-radius:9px;font-family:'Inter';font-size:.85rem;margin-bottom:.55rem;}
+    .search-box:focus{outline:none;border-color:var(--teal);}
+    .filter-tags{display:flex;gap:.28rem;flex-wrap:wrap;justify-content:space-between;}
+    .filter-tag{padding:.2rem .5rem;border-radius:20px;font-size:.57rem;font-weight:700;cursor:pointer;border:1.5px solid currentColor;
+                background:transparent;transition:all .18s;letter-spacing:.01em;text-transform:uppercase;font-family:'Inter';white-space:nowrap;}
+    .filter-tag.active{color:#fff!important;}
+    .filter-tag[data-cat="all"]{color:var(--text);}   .filter-tag[data-cat="all"].active{background:var(--text);}
+    .filter-tag[data-cat="food"]{color:#C1272D;}  .filter-tag[data-cat="food"].active{background:#C1272D;}
+    .filter-tag[data-cat="spot"]{color:#1C1C1E;}  .filter-tag[data-cat="spot"].active{background:#1C1C1E;}
+    .filter-tag[data-cat="exp"]{color:#A9790F;}   .filter-tag[data-cat="exp"].active{background:#A9790F;}
+    .filter-tag[data-cat="work"]{color:#7A7570;}  .filter-tag[data-cat="work"].active{background:#7A7570;}
+    .filter-tag[data-cat="stay"]{color:#1E7E86;}  .filter-tag[data-cat="stay"].active{background:#1E7E86;}
+    .main{display:grid;grid-template-columns:400px 1fr;flex:1;min-height:0;}
+    .panel{display:flex;flex-direction:column;border-right:1px solid var(--border);min-height:0;background:var(--sand);}
+    .cards{overflow-y:auto;flex:1;min-height:0;padding:.6rem;}
+    .card{background:#fff;border:1px solid var(--border);border-radius:11px;padding:.7rem .8rem;margin-bottom:.55rem;cursor:pointer;transition:all .16s;border-left:4px solid var(--border);}
+    .card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);transform:translateY(-1px);}
+    .card.cat-food{border-left-color:#C1272D;} .card.cat-spot{border-left-color:#1C1C1E;}
+    .card.cat-exp{border-left-color:#C69214;}  .card.cat-work{border-left-color:#7A7570;}
+    .card.cat-stay{border-left-color:#1E7E86;}
+    .card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem;}
+    .card-name{font-family:'Fraunces',serif;font-size:1rem;font-weight:700;line-height:1.15;}
+    .card-hood{font-size:.64rem;color:var(--mid);text-transform:uppercase;letter-spacing:.05em;margin-top:.15rem;}
+    .card-tag{font-size:.62rem;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap;}
+    .tag-food{color:#A81E23;background:#FBE3E1;} .tag-spot{color:#2A2A2E;background:#E9E7E6;}
+    .tag-exp{color:#8A6410;background:#F6ECCF;}  .tag-work{color:#5A554F;background:#ECE8E3;}
+    .tag-stay{color:#176269;background:#DCEDEF;}
+    .card-desc{font-size:.8rem;color:#3A3A3E;line-height:1.4;margin:.45rem 0 .4rem;}
+    .card-addr{font-size:.7rem;color:var(--mid);margin-bottom:.4rem;}
+    .card-actions{display:flex;gap:.4rem;flex-wrap:wrap;}
+    .btn{font-family:'Inter';font-size:.68rem;font-weight:600;padding:.32rem .6rem;border-radius:7px;border:none;cursor:pointer;transition:all .15s;text-decoration:none;display:inline-block;}
+    .btn-add{background:var(--teal);color:#fff;} .btn-add:hover{background:#000;}
+    .btn-map{background:var(--off);color:var(--text);} .btn-map:hover{background:#E2D9D3;}
+    .btn-menu{background:var(--gold);color:#241C15;} .btn-menu:hover{background:#A9790F;}
+    .empty{padding:2rem 1rem;text-align:center;color:var(--mid);font-size:.85rem;}
+    #map{height:100%;width:100%;}
+    .leaflet-popup-content-wrapper{border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,.15);}
+    .leaflet-popup-content{margin:10px 12px;font-family:'Inter';}
+    .pop-name{font-family:'Fraunces',serif;font-weight:700;font-size:.95rem;}
+    .pop-hood{font-size:.63rem;color:var(--mid);text-transform:uppercase;letter-spacing:.05em;margin:.1rem 0 .3rem;}
+    .pop-desc{font-size:.75rem;color:#3A3A3E;line-height:1.35;}
+    .place-label{display:none;background:rgba(255,255,255,.94);border:1px solid var(--border);border-radius:6px;padding:1px 6px;
+      font-family:'Inter';font-size:.68rem;font-weight:600;color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.18);white-space:nowrap;cursor:pointer;}
+    .place-label::before{display:none!important;}
+    .leaflet-container.labels-on .place-label{display:block;}
+    .locate-ctrl a{font-size:1.05rem;line-height:26px;text-align:center;text-decoration:none;}
+    .hero-plan{display:flex;align-items:center;gap:.55rem;flex-wrap:wrap;padding-left:.75rem;margin-left:.15rem;border-left:1px solid rgba(255,255,255,.35);}
+    .foot-itin{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.5);border-radius:24px;padding:.34rem .85rem;
+      font-family:'Inter';font-weight:700;font-size:.76rem;cursor:pointer;display:flex;align-items:center;gap:.4rem;transition:all .15s;}
+    .foot-itin:hover{background:rgba(255,255,255,.26);}
+    .foot-itin .count{background:#fff;color:var(--crimson);border-radius:12px;padding:.05rem .5rem;font-size:.7rem;}
+    .foot-days{font-size:.72rem;display:flex;align-items:center;gap:.35rem;color:rgba(255,255,255,.9);}
+    .foot-days .day-count{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.5);
+      border-radius:8px;padding:.24rem .45rem;font-family:'Inter';font-size:.73rem;font-weight:600;cursor:pointer;}
+    .foot-days .day-count option{color:#000;}
+    .popup{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1001;display:none;align-items:center;justify-content:center;padding:1rem;}
+    .popup.open{display:flex;}
+    .pbox{background:#fff;border-radius:14px;max-width:460px;width:100%;max-height:82vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.3);}
+    .phead{background:var(--dark);color:#fff;padding:.85rem 1.1rem;display:flex;justify-content:space-between;align-items:center;}
+    .phead h2{font-family:'Fraunces',serif;font-size:1.05rem;}
+    .pclose{background:none;border:none;color:#fff;font-size:1.4rem;cursor:pointer;line-height:1;}
+    .pbody{overflow-y:auto;padding:.9rem 1.1rem 1.1rem;}
+    .day-count{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:8px;padding:.3rem .5rem;font-family:'Inter';font-size:.75rem;font-weight:600;cursor:pointer;}
+    .day-count option{color:#000;}
+    .phead-tools{display:flex;align-items:center;gap:.7rem;}
+    .itin-day-head{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--crimson);margin:.7rem 0 .4rem;border-bottom:1px solid var(--border);padding-bottom:.25rem;}
+    .itin-day-head:first-child{margin-top:0;}
+    .itin-day-empty{font-size:.72rem;color:var(--mid);font-style:italic;margin-bottom:.4rem;}
+    .itin-item{display:flex;justify-content:space-between;align-items:center;gap:.6rem;padding:.55rem;border:1px solid var(--border);border-radius:9px;margin-bottom:.5rem;}
+    .itin-item-name{font-weight:600;font-size:.85rem;} .itin-item-hood{font-size:.66rem;color:var(--mid);}
+    .itin-remove{background:none;border:none;color:var(--crimson);cursor:pointer;font-size:.9rem;}
+    .itin-empty{text-align:center;color:var(--mid);padding:1.5rem 1rem;font-size:.85rem;}
+    .day-list button{display:block;width:100%;text-align:left;background:none;border:none;padding:.55rem .3rem;font-size:1rem;font-weight:600;color:var(--text);cursor:pointer;border-radius:8px;font-family:'Inter';}
+    .day-list button:hover{background:var(--off);color:var(--crimson);}
+    .tip-block{margin-bottom:1rem;}
+    .tip-block h4{font-family:'Fraunces',serif;font-size:.95rem;margin-bottom:.3rem;color:var(--crimson);}
+    .tip-block p{font-size:.82rem;color:#3A3A3E;line-height:1.45;}
+    .tag-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:.3rem;}
+    .tag-row span{font-size:.7rem;background:var(--off);border-radius:20px;padding:2px 9px;}
+    .day-route-btn{float:right;background:var(--teal);color:#fff;border:none;border-radius:14px;
+      padding:.14rem .6rem;font-family:'Inter';font-size:.6rem;font-weight:700;cursor:pointer;letter-spacing:.03em;text-transform:none;}
+    .day-route-btn:hover{background:#333;}
+    .route-banner{position:fixed;top:.7rem;left:50%;transform:translateX(-50%);z-index:1002;display:none;
+      align-items:center;gap:.7rem;background:var(--dark);color:#F4F1E9;border-radius:24px;
+      padding:.4rem .5rem .4rem 1rem;box-shadow:0 6px 20px rgba(0,0,0,.3);font-family:'Inter';font-size:.8rem;font-weight:600;}
+    .route-banner.show{display:flex;}
+    .route-banner button{background:rgba(255,255,255,.18);color:#fff;border:none;border-radius:16px;
+      padding:.28rem .75rem;font-family:'Inter';font-size:.72rem;font-weight:700;cursor:pointer;}
+    .route-banner button:hover{background:rgba(255,255,255,.3);}
+    .route-pin{width:26px;height:26px;border-radius:50%;background:var(--crimson);color:#fff;border:2px solid #fff;
+      box-shadow:0 2px 7px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;font-family:'Inter';}
+    @media(max-width:820px){
+      html,body{height:auto;} body{min-height:100vh;}
+      .main{display:flex;flex-direction:column;flex:none;min-height:0;}
+      .panel{border-right:none;border-bottom:1px solid var(--border);min-height:0;}
+      .panel-controls{position:sticky;top:0;z-index:500;}
+      .cards{overflow-y:visible;flex:none;min-height:0;}
+      #map{height:52vh;width:100%;order:-1;}
+    }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-left">
+      <svg class="hero-mark" width="42" height="30" viewBox="0 0 42 30" aria-hidden="true"><circle cx="15" cy="15" r="13" fill="#fff"/><circle cx="19.3" cy="15" r="10.5" fill="#C1272D"/><polygon fill="#fff" points="31,7.6 33,12.7 38.4,13 34.2,16.4 35.6,21.6 31,18.7 26.4,21.6 27.8,16.4 23.6,13 29,12.7"/></svg>
+      <h1>Turkey</h1>
+      <span class="hero-sub">Plan Playbook</span>
+      <div class="hero-plan">
+        <button class="foot-itin" id="itin-fab">✦ Your Turkey Itinerary <span class="count" id="itin-count">0</span> added</button>
+      </div>
+    </div>
+    <div class="hero-right">
+      <div class="dest-toggle">
+        <button class="dest-btn active" data-dest="ist">İstanbul</button>
+        <button class="dest-btn" data-dest="cesme">Çeşme &amp; Alaçatı</button>
+      </div>
+      <span class="tips-link" id="tips-open">Trip tips &amp; work plan</span>
+    </div>
+  </header>
+
+  <div class="main">
+    <aside class="panel">
+      <div class="panel-controls">
+        <input class="search-box" id="search-input" type="text" placeholder="Search places, neighborhoods…">
+        <div class="filter-tags">
+          <button class="filter-tag active" data-cat="all">All</button>
+          <button class="filter-tag" data-cat="food">Food</button>
+          <button class="filter-tag" data-cat="spot">Spots</button>
+          <button class="filter-tag" data-cat="exp">Experiences</button>
+          <button class="filter-tag" data-cat="work">Work</button>
+          <button class="filter-tag" data-cat="stay">Stays</button>
+        </div>
+      </div>
+      <div class="cards" id="cards"></div>
+    </aside>
+    <div id="map"></div>
+  </div>
+
+
+  <div class="route-banner" id="route-banner"><span id="route-banner-text"></span><button id="route-exit">Show all ✕</button></div>
+
+  <div class="popup" id="itin-popup">
+    <div class="pbox">
+      <div class="phead"><h2>✦ Your Turkey Itinerary</h2><div class="phead-tools"><select class="day-count" id="day-count" title="How many days?"><option value="1">1 day</option><option value="2">2 days</option><option value="3">3 days</option><option value="4">4 days</option><option value="5">5 days</option><option value="6">6 days</option><option value="7">7 days</option><option value="8">8 days</option><option value="9">9 days</option><option value="10" selected>10 days</option></select><button class="pclose" id="itin-close">×</button></div></div>
+      <div class="pbody" id="itin-list"></div>
+    </div>
+  </div>
+
+  <div class="popup" id="day-popup">
+    <div class="pbox" style="max-width:300px;">
+      <div class="phead"><h2>Add to which day?</h2><button class="pclose" id="day-close">×</button></div>
+      <div class="pbody"><div class="day-list" id="day-list"></div></div>
+    </div>
+  </div>
+
+  <div class="popup" id="tips-popup">
+    <div class="pbox">
+      <div class="phead"><h2>Trip tips &amp; work plan</h2><button class="pclose" id="tips-close">×</button></div>
+      <div class="pbody">
+        <div class="tip-block"><h4>The rakı rule</h4><p>Sip slow, never a shot. Add cold water → it turns milky (<i>aslan sütü</i>). Cold meze first, hot meze next, fish last. Classic pairing: white cheese + melon.</p></div>
+        <div class="tip-block"><h4>Meat &amp; food checklist</h4>
+          <div class="tag-row"><span>Kokoreç</span><span>Adana</span><span>Urfa</span><span>Kuzu pirzola</span><span>Döner dürüm</span><span>Köfte</span><span>Sucuk + eggs</span><span>Balık ekmek</span><span>Midye dolma</span><span>Cağ kebabı</span><span>Lahmacun</span><span>Künefe</span></div></div>
+        <div class="tip-block"><h4>Work game plan</h4><p><b>Startup/founder crowd:</b> work Café Karabatak (Karaköy); scan Luma/Meetup for a Friday mixer. <b>Second meetings:</b> Mangerie/Lucca (Bebek), Raffles/Four Seasons lounges (Beşiktaş). <b>Community hubs:</b> Kolektif House/Workinton, KWORKS (Koç)/İTÜ Çekirdek demo nights, Endeavor Türkiye. <b>Fintech Week</b> is the peak — map targets, make 2–3 warm intros.</p></div>
+        <div class="tip-block"><h4>Key dates</h4><p><b>Sun · Oct 4 — Prep:</b> finalize dinner guest list, send invites for Tue; map Fintech Week speakers. <b>Tue · Oct 6 — The dinner:</b> your peak play.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+  const activities = [{"id": 1, "dest": "ist", "area": "Kadıköy", "side": "Asian side", "name": "Adalı Kokoreç", "cat": "food", "tag": "meat · street", "note": "Cult kokoreç (grilled spiced lamb intestine). Get the porsiyon, not the sandwich, + midye dolma.", "addr": "Caferağa, Sakızgülü Sok. No:19D", "lat": 40.9879, "lng": 29.0254}, {"id": 2, "dest": "ist", "area": "Kadıköy", "side": "Asian side", "name": "Reks Kokoreç", "cat": "food", "tag": "meat · street", "note": "Local kokoreç + stuffed mussels on Kadife Sok. Open till ~4am.", "addr": "Caferağa, Kadife Sk. No:1", "lat": 40.9892, "lng": 29.0254}, {"id": 3, "dest": "ist", "area": "Kadıköy", "side": "Asian side", "name": "Koruçam Ocakbaşı", "cat": "food", "tag": "meat · grill", "note": "Real charcoal ocakbaşı — kuzu şiş, çiğ köfte. Regulars every night.", "addr": "Rasimpaşa, Misak-ı Milli Sok. 5/A", "lat": 40.9905, "lng": 29.0254}, {"id": 4, "dest": "ist", "area": "Kadıköy", "side": "Asian side", "name": "Kadı Lokantası", "cat": "food", "tag": "home food", "note": "Point-and-eat lokanta, cheap Turkish home cooking in old Kadıköy.", "addr": "Osmanağa, Halitağa Cd. No:44", "lat": 40.9918, "lng": 29.0254}, {"id": 5, "dest": "ist", "area": "Kadıköy", "side": "Asian side", "name": "Khalkedon Rakı & Balık Evi", "cat": "food", "tag": "fish + rakı", "note": "Your seafood + rakı night, inside the fish market. Order lots of meze, go slow.", "addr": "Caferağa, Güneşlibahçe Sok. No:37", "lat": 40.9931, "lng": 29.0254}, {"id": 6, "dest": "ist", "area": "Kadıköy", "side": "Asian side", "name": "Balıkçı Lokantası", "cat": "food", "tag": "fish · cheap", "note": "Tiny locals-only fish spot behind the ferry. Fresh fish under ~€10, free halva + tea.", "addr": "Rasimpaşa, Tayyareci Sami Sk. No:20", "lat": 40.9879, "lng": 29.027}, {"id": 7, "dest": "ist", "area": "Kadıköy", "side": "Asian side", "name": "Piraye Taş Plak Meyhanesi", "cat": "food", "tag": "meze · rakı · music", "note": "Meyhane spinning old Turkish records (taş plak). The kind of place you stay for hours.", "addr": "Osmanağa, Serasker Cd. Mimar Çıkmazı No:8/A", "lat": 40.9892, "lng": 29.027}, {"id": 8, "dest": "ist", "area": "Kadıköy", "side": "Asian side", "name": "Koço", "cat": "food", "tag": "fish + rakı", "note": "Historic Greek-era meyhane in Moda. Pricier — go for the experience, not the bill.", "addr": "Caferağa, Moda Cd. No:171", "lat": 40.9905, "lng": 29.027}, {"id": 9, "dest": "ist", "area": "Kadıköy", "side": "Asian side", "name": "Kadıköy Çarşı", "cat": "spot", "tag": "market", "note": "Market lanes — olives, pickles, sweets, cheese. Wander with no plan.", "addr": "Osmanağa", "lat": 40.9918, "lng": 29.027}, {"id": 10, "dest": "ist", "area": "Kadıköy", "side": "Asian side", "name": "Kadıköy Balık Pazarı", "cat": "spot", "tag": "fish market", "note": "Fish counters + meze shops. Best at dusk.", "addr": "Osmanağa, Güneşlibahçe Sok.", "lat": 40.9931, "lng": 29.027}, {"id": 11, "dest": "ist", "area": "Kadıköy", "side": "Asian side", "name": "Yeldeğirmeni", "cat": "spot", "tag": "neighborhood", "note": "Murals, old apartment blocks, indie shops and cafés — the young local crowd.", "addr": "Yeldeğirmeni, Kadıköy", "lat": 40.9879, "lng": 29.0286}, {"id": 12, "dest": "ist", "area": "Kadıköy", "side": "Asian side", "name": "Moda & Moda Sahili", "cat": "spot", "tag": "waterfront", "note": "Seaside promenade. Go for sunset.", "addr": "Moda, Kadıköy", "lat": 40.9892, "lng": 29.0286}, {"id": 13, "dest": "ist", "area": "Kadıköy", "side": "Asian side", "name": "Ask the fish vendor", "cat": "exp", "tag": "local move", "note": "At the market: “Bunu nerede güzel pişirirler?” (where do they cook this well?) → follow their pick.", "addr": "Kadıköy Balık Pazarı", "lat": 40.9905, "lng": 29.0286}, {"id": 14, "dest": "ist", "area": "Kadıköy", "side": "Asian side", "name": "The local night", "cat": "exp", "tag": "unplanned night", "note": "Ferry over ~7pm, walk Çarşı → Yeldeğirmeni, ask a shopkeeper where locals drink rakı+fish, eat whatever's fresh, end on Moda waterfront.", "addr": "Kadıköy", "lat": 40.9918, "lng": 29.0286}, {"id": 15, "dest": "ist", "area": "Kadıköy", "side": "Asian side", "name": "Sunset commuter ferry", "cat": "exp", "tag": "ferry", "note": "Take the regular ferry (not a cruise) from Eminönü/Karaköy. Tea, simit, gulls — best Bosphorus view for a transit fare.", "addr": "Eminönü / Karaköy → Kadıköy", "lat": 40.9931, "lng": 29.0286}, {"id": 16, "dest": "ist", "area": "Kuzguncuk", "side": "Asian side · Üsküdar", "name": "İsmet Baba", "cat": "food", "tag": "fish + rakı", "note": "Family fish house since 1951, right on the water. Ask for a window table, arrive ~5:30pm, let them pick the day's fish.", "addr": "Kuzguncuk Çarşı Cd. No:1", "lat": 41.0304, "lng": 29.0304}, {"id": 17, "dest": "ist", "area": "Kuzguncuk", "side": "Asian side · Üsküdar", "name": "Kuzguncuk", "cat": "spot", "tag": "village streets", "note": "Colorful wooden houses on Üryanizade & İcadiye; walk down to the Bosphorus, or up into Fethi Paşa woods.", "addr": "Kuzguncuk, Üsküdar", "lat": 41.0317, "lng": 29.0304}, {"id": 18, "dest": "ist", "area": "Kuzguncuk", "side": "Asian side · Üsküdar", "name": "Village → water → dinner", "cat": "exp", "tag": "half-day", "note": "Wander the little streets first, drift down to the Bosphorus, then dinner at İsmet Baba.", "addr": "Kuzguncuk", "lat": 41.033, "lng": 29.0304}, {"id": 19, "dest": "ist", "area": "Üsküdar", "side": "Asian side", "name": "Payedar Kahve", "cat": "food", "tag": "coffeehouse", "note": "Traditional kahvehane. Order çay, sit, watch the neighborhood.", "addr": "Sultantepe, Kurşunlu Medrese Sok. No:2", "lat": 41.0232, "lng": 29.0134}, {"id": 20, "dest": "ist", "area": "Üsküdar", "side": "Asian side", "name": "Kadim Kahve", "cat": "food", "tag": "coffeehouse", "note": "Same idea — neighborhood tea + backgammon.", "addr": "Mimar Sinan, Hakimiyeti Milliye Cd. No:3", "lat": 41.0245, "lng": 29.0134}, {"id": 21, "dest": "ist", "area": "Üsküdar", "side": "Asian side", "name": "The kahvehane sit", "cat": "exp", "tag": "ritual", "note": "Order çay, put the itinerary away. “Tavla oynayabilir miyim?” if the backgammon boards are out.", "addr": "Üsküdar", "lat": 41.0258, "lng": 29.0134}, {"id": 22, "dest": "ist", "area": "Çengelköy", "side": "Asian side", "name": "Tarihi Çınaraltı", "cat": "spot", "tag": "tea garden", "note": "Çay bahçesi under giant plane trees, right on the water. Bring your own simit + cheese, buy the tea. Weekday mornings.", "addr": "Çengelköy Cad.", "lat": 41.0494, "lng": 29.0514}, {"id": 23, "dest": "ist", "area": "Anadolu Kavağı", "side": "Asian side · north Bosphorus", "name": "Çapari Restaurant", "cat": "food", "tag": "fish", "note": "Village seafood by the water. Whole grilled fish + meze.", "addr": "Eğri Boyun Cd. No:8/A", "lat": 41.1674, "lng": 29.0814}, {"id": 24, "dest": "ist", "area": "Anadolu Kavağı", "side": "Asian side · north Bosphorus", "name": "Lakerda Balık Evi", "cat": "food", "tag": "fish", "note": "Seafood in the village — simple, fresh.", "addr": "Anadolu Kavağı, Eğri Boyun Cd. 2/A", "lat": 41.1687, "lng": 29.0814}, {"id": 25, "dest": "ist", "area": "Anadolu Kavağı", "side": "Asian side · north Bosphorus", "name": "Ferry to the Black Sea mouth", "cat": "exp", "tag": "day trip", "note": "Public ferry Üsküdar → Anadolu Kavağı (not a tour). Walk uphill through the village, then fish by the water. Give it 4–5 hrs.", "addr": "Üsküdar → Anadolu Kavağı", "lat": 41.17, "lng": 29.0814}, {"id": 26, "dest": "ist", "area": "Beşiktaş", "side": "European side", "name": "Raffles Istanbul (Zorlu Center)", "cat": "work", "tag": "2nd meetings · lounge", "note": "Polished lounge to turn a Fintech Week hit into a real second meeting. Calm, affluent, business-ready.", "addr": "Zorlu Center, Levazım, Vadi Caddesi", "lat": 41.0404, "lng": 29.0064}, {"id": 27, "dest": "ist", "area": "Beşiktaş", "side": "European side", "name": "Four Seasons Bosphorus", "cat": "work", "tag": "2nd meetings · lounge", "note": "Çırağan waterfront lounge — the setting does half the work for a serious sit-down.", "addr": "Çırağan Cd. No:28, Beşiktaş", "lat": 41.0417, "lng": 29.0064}, {"id": 28, "dest": "ist", "area": "Beşiktaş", "side": "European side", "name": "Manidar Balık Meyhane", "cat": "food", "tag": "fish · meze", "note": "Low-key seafood/meze/meyhane away from the tourist kebab strip.", "addr": "Cihannüma, Salihefendi Sk. 4A", "lat": 41.043, "lng": 29.0064}, {"id": 29, "dest": "ist", "area": "Levent · Maslak · Şişli", "side": "European side · business district", "name": "Kolektif House", "cat": "work", "tag": "coworking · community", "note": "Startup coworking with an active community (Levent, Maslak, Ataşehir branches). Ask the community manager what's open while you're in town.", "addr": "Esentepe, Talatpaşa Cd. No:5/1, Levent", "lat": 41.0784, "lng": 29.0084}, {"id": 30, "dest": "ist", "area": "Levent · Maslak · Şişli", "side": "European side · business district", "name": "Workinton", "cat": "work", "tag": "coworking", "note": "Coworking chain across the business district — another door to open events. Ask the front desk / community lead.", "addr": "Levent / Maslak, Istanbul", "lat": 41.0797, "lng": 29.0084}, {"id": 31, "dest": "ist", "area": "Levent · Maslak · Şişli", "side": "European side · business district", "name": "KWORKS (Koç University)", "cat": "work", "tag": "incubator · demo nights", "note": "Koç's entrepreneurship centre — free events fill up fast, so arrive early. Watch for open demo/mentoring nights.", "addr": "Golden Plaza, 19 Mayıs Cd. No:3, Şişli", "lat": 41.081, "lng": 29.0084}, {"id": 32, "dest": "ist", "area": "Levent · Maslak · Şişli", "side": "European side · business district", "name": "İTÜ Çekirdek", "cat": "work", "tag": "incubator · demo nights", "note": "One of the few real incubators — top demo nights. Check what's public during your dates.", "addr": "Reşitpaşa, Katar Cd. No:4, İTÜ Arı Teknokent, Sarıyer", "lat": 41.0823, "lng": 29.0084}, {"id": 33, "dest": "ist", "area": "Arnavutköy → Bebek", "side": "European side · Bosphorus", "name": "Mangerie", "cat": "work", "tag": "2nd meetings · affluent", "note": "Bebek brunch institution where the affluent linger. Relaxed setting for a warm, low-pressure second meeting.", "addr": "Bebek, Cevdet Paşa Cd. No:69", "lat": 41.0744, "lng": 29.0414}, {"id": 34, "dest": "ist", "area": "Arnavutköy → Bebek", "side": "European side · Bosphorus", "name": "Lucca", "cat": "work", "tag": "2nd meetings · affluent", "note": "Bebek see-and-be-seen spot — good for a casual daytime catch-up. Closed Mondays.", "addr": "Bebek, Cevdet Paşa Cd. No:51", "lat": 41.0757, "lng": 29.0414}, {"id": 35, "dest": "ist", "area": "Arnavutköy → Bebek", "side": "European side · Bosphorus", "name": "Golden-hour Bosphorus walk", "cat": "exp", "tag": "walk", "note": "~3km stroll past yalıs, fishing boats and cafés. Start Arnavutköy ~4:30pm, end with tea in Bebek.", "addr": "Arnavutköy → Bebek", "lat": 41.077, "lng": 29.0414}, {"id": 36, "dest": "ist", "area": "Beyoğlu · Taksim · Galatasaray", "side": "European side", "name": "Zübeyir Ocakbaşı", "cat": "food", "tag": "meat · grill", "note": "Proper charcoal ocakbaşı. Adana + kuzu pirzola, sit by the grill, ~8:30pm.", "addr": "Şehit Muhtar, Bekar Sok. No:28", "lat": 41.0309, "lng": 28.9754}, {"id": 37, "dest": "ist", "area": "Beyoğlu · Taksim · Galatasaray", "side": "European side", "name": "Durak Ocakbaşı", "cat": "food", "tag": "meat · grill", "note": "More affordable grill on the same street.", "addr": "Bekar Sk. No:10", "lat": 41.0322, "lng": 28.9754}, {"id": 38, "dest": "ist", "area": "Beyoğlu · Taksim · Galatasaray", "side": "European side", "name": "Beyoğlu Ocakbaşı", "cat": "food", "tag": "meat · grill", "note": "Another solid ocakbaşı, Bekar Sok.", "addr": "Bekar Sk. No:20", "lat": 41.0335, "lng": 28.9754}, {"id": 39, "dest": "ist", "area": "Beyoğlu · Taksim · Galatasaray", "side": "European side", "name": "Çukur Meyhane", "cat": "food", "tag": "meze · rakı", "note": "Intimate Galatasaray meyhane — a whole-evening kind of place.", "addr": "Kuloğlu, Turnacıbaşı Cd. / Kartal Sok.", "lat": 41.0348, "lng": 28.9754}, {"id": 40, "dest": "ist", "area": "Beyoğlu · Taksim · Galatasaray", "side": "European side", "name": "Ney'le Mey'le Meyhane", "cat": "food", "tag": "meat · meze", "note": "On the Nevizade nightlife lane. Adana + lamb + meze; don't leave right after eating.", "addr": "Hüseyinağa, Nevizade Sok. No:8", "lat": 41.0361, "lng": 28.9754}, {"id": 41, "dest": "ist", "area": "Beyoğlu · Taksim · Galatasaray", "side": "European side", "name": "Ozzie's Kokoreç", "cat": "food", "tag": "meat · street", "note": "Wood-fired kokoreç, cult following. Reserve; closes ~8:30pm, shut Sun/Mon.", "addr": "Bülbül, Serdar Ömerpaşa Cd. No:44/A", "lat": 41.0309, "lng": 28.977}, {"id": 42, "dest": "ist", "area": "Beyoğlu · Taksim · Galatasaray", "side": "European side", "name": "İstiklal & Galata", "cat": "spot", "tag": "wander", "note": "Afternoon roaming before disappearing into a meyhane at night.", "addr": "Beyoğlu", "lat": 41.0322, "lng": 28.977}, {"id": 43, "dest": "ist", "area": "Beyoğlu · Taksim · Galatasaray", "side": "European side", "name": "Ocakbaşı after 10pm", "cat": "exp", "tag": "late night", "note": "Skip the 7pm kebab. Go late, sit where you can watch the meat cook; şalgam instead of ayran.", "addr": "Bekar Sok., Beyoğlu", "lat": 41.0335, "lng": 28.977}, {"id": 44, "dest": "ist", "area": "Beyoğlu · Taksim · Galatasaray", "side": "European side", "name": "Meetings base", "cat": "work", "tag": "networking", "note": "Most Beyoğlu/Karaköy finance & networking meets land around here — plan work + wandering together.", "addr": "Beyoğlu / Karaköy", "lat": 41.0348, "lng": 28.977}, {"id": 45, "dest": "ist", "area": "Cihangir", "side": "European side · Beyoğlu", "name": "Sa Va Anatolian Breakfast House", "cat": "food", "tag": "breakfast", "note": "Full Anatolian kahvaltı. Sucuk + eggs covers the meat fix.", "addr": "Cihangir, Bakraç Sk. No:34A", "lat": 41.0284, "lng": 28.9814}, {"id": 46, "dest": "ist", "area": "Karaköy · Galata · Tophane", "side": "European side", "name": "Café Karabatak", "cat": "work", "tag": "founder scene", "note": "Third-wave coffee spot where the startup/founder crowd lingers. Work the room; go to write and get pulled into conversation.", "addr": "Kemankeş Karamustafa Paşa, Karaali Kaptan Sk. No:7", "lat": 41.0214, "lng": 28.9754}, {"id": 47, "dest": "ist", "area": "Karaköy · Galata · Tophane", "side": "European side", "name": "Karaköy → Kamondo Stairs → Tophane", "cat": "spot", "tag": "walk", "note": "Old commercial Istanbul, galleries and cafés. More than just the Tower photo.", "addr": "Karaköy, Beyoğlu", "lat": 41.0227, "lng": 28.9754}, {"id": 48, "dest": "ist", "area": "Vefa · Zeyrek · Süleymaniye", "side": "European side · Fatih", "name": "Vefa Bozacısı", "cat": "food", "tag": "old-school drink", "note": "Boza (fermented grain drink) since 1876. Add roasted chickpeas + cinnamon. Before 1pm on Saturdays.", "addr": "Vefa / Zeyrek, Fatih", "lat": 41.0144, "lng": 28.9584}, {"id": 49, "dest": "ist", "area": "Vefa · Zeyrek · Süleymaniye", "side": "European side · Fatih", "name": "Esnaf Lokantası (Paşa Camii)", "cat": "food", "tag": "home food · meat", "note": "Tradesmen's canteen — point at trays of stews (kuru fasulye, et yemeği). Lunch 12–1:30pm.", "addr": "Mercan, Paşa Camii Sok. No:4", "lat": 41.0157, "lng": 28.9584}, {"id": 50, "dest": "ist", "area": "Vefa · Zeyrek · Süleymaniye", "side": "European side · Fatih", "name": "Süleymaniye Mosque", "cat": "spot", "tag": "mosque · sunset", "note": "Go just before sunset, then walk the backstreets down to the Golden Horn as the tour groups thin out.", "addr": "Süleymaniye, Fatih", "lat": 41.017, "lng": 28.9584}, {"id": 51, "dest": "ist", "area": "Vefa · Zeyrek · Süleymaniye", "side": "European side · Fatih", "name": "Vefa → Zeyrek → Süleymaniye", "cat": "exp", "tag": "old-city walk", "note": "Boza first, then wander the wooden-house backstreets into a completely different Istanbul.", "addr": "Vefa, Fatih", "lat": 41.0183, "lng": 28.9584}, {"id": 52, "dest": "ist", "area": "Samatya · Yedikule", "side": "European side · Fatih", "name": "Aydın Kardeşler Köftecisi", "cat": "food", "tag": "meat · köfte", "note": "Neighborhood köfte — chicken + beef, lentil çorba. Superb value (4.9).", "addr": "Yedikule, İmrahor İlyasbey Cd. No:109", "lat": 40.9924, "lng": 28.9284}, {"id": 53, "dest": "ist", "area": "Samatya · Yedikule", "side": "European side · Fatih", "name": "Tarihi Samatya Köftecisi", "cat": "food", "tag": "meat · köfte", "note": "Old-school köfte. No English, cash only, closed Sundays — that's the quality signal.", "addr": "Cerrahpaşa, Samatya", "lat": 40.9937, "lng": 28.9284}, {"id": 54, "dest": "ist", "area": "Samatya · Yedikule", "side": "European side · Fatih", "name": "Safa Meyhanesi", "cat": "food", "tag": "fish + rakı", "note": "Old-neighborhood meyhane. Ask “Bugün ne taze?” and build around it.", "addr": "Yedikule, İmrahor İlyasbey Cd. No:169", "lat": 40.995, "lng": 28.9284}, {"id": 55, "dest": "ist", "area": "Samatya · Yedikule", "side": "European side · Fatih", "name": "Yedikule Fortress & Golden Gate", "cat": "spot", "tag": "history · quiet", "note": "Byzantine walls + the emperors' triumphal marble gate. Nearly empty, cheap, 15-min train. Closed Mondays.", "addr": "Yedikule, Fatih", "lat": 40.9963, "lng": 28.9284}, {"id": 56, "dest": "ist", "area": "Samatya · Yedikule", "side": "European side · Fatih", "name": "Samatya square & sea walls", "cat": "spot", "tag": "old streets", "note": "Armenian/Greek-era streets to wander before dinner.", "addr": "Samatya, Fatih", "lat": 40.9976, "lng": 28.9284}, {"id": 57, "dest": "ist", "area": "Samatya · Yedikule", "side": "European side · Fatih", "name": "Walls → Samatya → rakı", "cat": "exp", "tag": "combo night", "note": "Yedikule walls, then Samatya streets, then seafood + rakı. History + neighborhood + food in one evening.", "addr": "Yedikule → Samatya", "lat": 40.9924, "lng": 28.93}, {"id": 58, "dest": "ist", "area": "Kumkapı", "side": "European side · Fatih", "name": "Kumkapı Kırmızı Karides", "cat": "food", "tag": "fish", "note": "Seafood on the quiet side streets, away from the terrace hustle.", "addr": "Şehsuvar Bey, Çapariz Sk. No:29", "lat": 41.0004, "lng": 28.9624}, {"id": 59, "dest": "ist", "area": "Kumkapı", "side": "European side · Fatih", "name": "Kumkapı Kalamar", "cat": "food", "tag": "fish", "note": "Seafood; go after 8pm and let the night develop.", "addr": "Şehsuvar Bey, Çapariz Sk. No:21–27", "lat": 41.0017, "lng": 28.9624}, {"id": 60, "dest": "ist", "area": "Kumkapı", "side": "European side · Fatih", "name": "Kumkapı Fishermen's Market", "cat": "spot", "tag": "fish market", "note": "Fresh catch + a seaside walk on the Marmara.", "addr": "Nişanca, Kennedy Cad.", "lat": 41.003, "lng": 28.9624}, {"id": 61, "dest": "ist", "area": "Kumkapı", "side": "European side · Fatih", "name": "Kumkapı after dark", "cat": "exp", "tag": "late seafood", "note": "After 8pm, skip the obvious terraces and duck into Çapariz Sok. for seafood + rakı.", "addr": "Çapariz Sok., Fatih", "lat": 41.0043, "lng": 28.9624}, {"id": 62, "dest": "ist", "area": "Sultanahmet · Sirkeci · historic Fatih", "side": "European side", "name": "Şehzade Cağ Kebap", "cat": "food", "tag": "meat", "note": "Erzurum-style horizontal wood-fired lamb (cağ kebabı). A focused, legendary spot.", "addr": "Hocapaşa, Hocapaşa Camii Sok. No:6 (Sirkeci)", "lat": 41.0054, "lng": 28.9764}, {"id": 63, "dest": "ist", "area": "Sultanahmet · Sirkeci · historic Fatih", "side": "European side", "name": "Sultanahmet Köftecisi", "cat": "food", "tag": "meat · köfte", "note": "Classic Turkish köfte with piyaz.", "addr": "Sultanahmet", "lat": 41.0067, "lng": 28.9764}, {"id": 64, "dest": "ist", "area": "Sultanahmet · Sirkeci · historic Fatih", "side": "European side", "name": "Öz Kilis Kebap & Lahmacun", "cat": "food", "tag": "meat · street", "note": "Local-favorite lahmacun; comes with a crowd for a reason.", "addr": "Akşemsettin, Bedrettin Simavi Sk. 5/A", "lat": 41.008, "lng": 28.9764}, {"id": 65, "dest": "ist", "area": "Sultanahmet · Sirkeci · historic Fatih", "side": "European side", "name": "Kral Kokoreç Sirkeci", "cat": "food", "tag": "meat · street", "note": "Quick kokoreç fix, ~₺200–400.", "addr": "Hobyar, Büyük Postane Cd. 26/1", "lat": 41.0093, "lng": 28.9764}, {"id": 66, "dest": "ist", "area": "Sultanahmet · Sirkeci · historic Fatih", "side": "European side", "name": "Kosk Kebap Dürüm Evi", "cat": "food", "tag": "meat · quick", "note": "Fast kebab dürüm right by the sights.", "addr": "Alemdar, Alayköşkü Cd. No:11/B", "lat": 41.0106, "lng": 28.9764}, {"id": 67, "dest": "ist", "area": "Sultanahmet · Sirkeci · historic Fatih", "side": "European side", "name": "En Baba Kebab", "cat": "food", "tag": "meat · late", "note": "Kebab, open extremely late — handy after wandering the peninsula.", "addr": "Şehsuvar Bey, Kadırga Limanı Cd. No:33B", "lat": 41.0054, "lng": 28.978}, {"id": 68, "dest": "ist", "area": "Sultanahmet · Sirkeci · historic Fatih", "side": "European side", "name": "Dürümcü Mehmetin Yeri", "cat": "food", "tag": "street · cheap", "note": "Cheap, honest dürüm; open till ~3am.", "addr": "Aksaray, Valide Camii Sok. No:53", "lat": 41.0067, "lng": 28.978}, {"id": 69, "dest": "ist", "area": "Sultanahmet · Sirkeci · historic Fatih", "side": "European side", "name": "Historic peninsula", "cat": "spot", "tag": "the big sights", "note": "Hagia Sophia, Blue Mosque, Topkapı, Basilica Cistern — do them, then get out to the neighborhoods.", "addr": "Sultanahmet", "lat": 41.008, "lng": 28.978}, {"id": 70, "dest": "ist", "area": "Sultanahmet · Sirkeci · historic Fatih", "side": "European side", "name": "Balık ekmek", "cat": "food", "tag": "fish · street", "note": "Fish sandwich at Eminönü / Galata Bridge. Cheap; the waterside spot is half the experience.", "addr": "Eminönü / Galata Bridge", "lat": 41.0093, "lng": 28.978}, {"id": 71, "dest": "ist", "area": "Fener · Balat", "side": "European side · Golden Horn", "name": "Fener → Balat → Golden Horn", "cat": "spot", "tag": "old neighborhoods", "note": "Colorful streets, churches, old houses. Do the side streets, then leave — don't burn a whole day (and it's busiest on weekends).", "addr": "Fener / Balat, Fatih", "lat": 41.0264, "lng": 28.9474}, {"id": 72, "dest": "ist", "area": "Ataşehir", "side": "Asian side · farther east", "name": "Dürümcü Emmi", "cat": "food", "tag": "meat", "note": "Gaziantep-style — beyran soup, beyti, katmer. A trek east; worth it if you're nearby. Closed Mondays.", "addr": "Küçükbakkalköy, Işıklar Cd. No:37", "lat": 40.9894, "lng": 29.1254}, {"id": 73, "dest": "cesme", "area": "Alaçatı", "side": "Çeşme peninsula", "name": "Bumba Breakfast Club", "cat": "food", "tag": "breakfast", "note": "Big Aegean village breakfast — make it a 60–90 min meal. ~₺1,000–1,200.", "addr": "12000 Sok. No:35, Alaçatı", "lat": 38.2784, "lng": 26.3714}, {"id": 74, "dest": "cesme", "area": "Alaçatı", "side": "Çeşme peninsula", "name": "İki Tek Meyhanesi", "cat": "food", "tag": "meze · rakı", "note": "Meyhane open till 3am. Order rakı + 3–4 meze + one seafood dish; “Bize siz seçin,” let them choose.", "addr": "Kemalpaşa Cd. No:35, Alaçatı", "lat": 38.2797, "lng": 26.3714}, {"id": 75, "dest": "cesme", "area": "Alaçatı", "side": "Çeşme peninsula", "name": "Alaçatı Usulü 1843 Meyhane", "cat": "food", "tag": "fish + rakı", "note": "Seafood + rakı; convenient if you're staying in Alaçatı.", "addr": "2011 Sok., Alaçatı", "lat": 38.281, "lng": 26.3714}, {"id": 76, "dest": "cesme", "area": "Alaçatı", "side": "Çeşme peninsula", "name": "Alaca RestoBar", "cat": "food", "tag": "nightlife", "note": "Casual bar for a night out — not a pricey beach club.", "addr": "12012 Sk. 33/1, Alaçatı", "lat": 38.2823, "lng": 26.3714}, {"id": 77, "dest": "cesme", "area": "Alaçatı", "side": "Çeşme peninsula", "name": "The Small Street", "cat": "food", "tag": "nightlife", "note": "Bar open till 4am if the night keeps going.", "addr": "1005 Sk. No:68, Alaçatı", "lat": 38.2836, "lng": 26.3714}, {"id": 78, "dest": "cesme", "area": "Alaçatı", "side": "Çeşme peninsula", "name": "Çarşı · Hacımemiş · Kemalpaşa side streets", "cat": "spot", "tag": "old town", "note": "Greek stone houses, bakeries, olive-oil shops, windmills. Go by 8am before the crowds.", "addr": "Alaçatı center", "lat": 38.2784, "lng": 26.373}, {"id": 79, "dest": "cesme", "area": "Alaçatı", "side": "Çeşme peninsula", "name": "Alaçatı windmills", "cat": "spot", "tag": "sunset", "note": "Aegean wind + stone town + sunset. 30–45 min, then walk back into town.", "addr": "Alaçatı", "lat": 38.2797, "lng": 26.373}, {"id": 80, "dest": "cesme", "area": "Alaçatı", "side": "Çeşme peninsula", "name": "Producer market", "cat": "exp", "tag": "Saturday only", "note": "Local herbs (radika, şevketi bostan), eggs, bread, fresh fish. If your days include Saturday, do this first (~7:30am).", "addr": "Alaçatı", "lat": 38.281, "lng": 26.373}, {"id": 81, "dest": "cesme", "area": "Alaçatı", "side": "Çeşme peninsula", "name": "Alaçatı Balık Mezatı (fish auction)", "cat": "exp", "tag": "seafood supply", "note": "Watch seafood enter the local food system. Roughly 08:00–14:00 — go earlier.", "addr": "13010 Sk. No:2, Alaçatı", "lat": 38.2823, "lng": 26.373}, {"id": 82, "dest": "cesme", "area": "Alaçatı", "side": "Çeşme peninsula", "name": "Olive-oil shop conversation", "cat": "exp", "tag": "local chat", "note": "“Hangisini yerel halk alıyor?” (which do locals buy?) Buy a small bottle — a real souvenir.", "addr": "Alaçatı", "lat": 38.2836, "lng": 26.373}, {"id": 83, "dest": "cesme", "area": "Ilıca", "side": "Çeşme peninsula", "name": "Ilıca Beach", "cat": "spot", "tag": "beach", "note": "Warm, shallow water. Swim around noon, skip the beach club, don't sink the whole day here.", "addr": "Ilıca, Çeşme", "lat": 38.2974, "lng": 26.3524}, {"id": 84, "dest": "cesme", "area": "Ovacık · Germiyan", "side": "Çeşme peninsula", "name": "Asma Yaprağı", "cat": "food", "tag": "Aegean · veg", "note": "Seasonal olive-oil cooking, mantı, stuffed vine leaves. Michelin-recommended. Your deliberate non-meat meal.", "addr": "Kerimoğlu Mevkii, Ovacık, 7152. Sok. No:141/1", "lat": 38.2824, "lng": 26.4034}, {"id": 85, "dest": "cesme", "area": "Ovacık · Germiyan", "side": "Çeşme peninsula", "name": "Ovasofra", "cat": "food", "tag": "Aegean · fish", "note": "Seven tables, farm-to-table, Michelin Bib Gourmand. Reserve ahead or don't force it.", "addr": "Ovacık, İnice Küme Evler No:11", "lat": 38.2837, "lng": 26.4034}, {"id": 86, "dest": "cesme", "area": "Ovacık · Germiyan", "side": "Çeşme peninsula", "name": "Germiyan", "cat": "spot", "tag": "village", "note": "Old architecture and food culture. Buy local products; “Burada ne meşhur?”", "addr": "Germiyan, Çeşme", "lat": 38.285, "lng": 26.4034}, {"id": 87, "dest": "cesme", "area": "Ovacık · Germiyan", "side": "Çeşme peninsula", "name": "Ovacık vineyard country", "cat": "exp", "tag": "slow down", "note": "A tasting if one's open that day, or just drive/walk the Aegean landscape.", "addr": "Ovacık", "lat": 38.2863, "lng": 26.4034}, {"id": 88, "dest": "cesme", "area": "Ovacık · Germiyan", "side": "Çeşme peninsula", "name": "Olive-oil producer", "cat": "exp", "tag": "local chat", "note": "“Erken hasat mı?” — see how a regional product becomes a premium one. Relevant to your finance eye.", "addr": "Ovacık area", "lat": 38.2876, "lng": 26.4034}, {"id": 89, "dest": "cesme", "area": "Çeşme town", "side": "Çeşme peninsula", "name": "Su Meyhane Çeşme", "cat": "food", "tag": "fish + rakı", "note": "Meze + seafood + rakı with proper meyhane atmosphere. ~₺1,200–1,400.", "addr": "16 Eylül, Atatürk Blv. No:85/B", "lat": 38.3204, "lng": 26.3034}, {"id": 90, "dest": "cesme", "area": "Çeşme town", "side": "Çeşme peninsula", "name": "Çeşme Castle & marina", "cat": "spot", "tag": "history", "note": "Castle → caravanserai → old harbor → marina. 60–90 min.", "addr": "Çeşme center", "lat": 38.3217, "lng": 26.3034}, {"id": 91, "dest": "cesme", "area": "Çeşme town", "side": "Çeşme peninsula", "name": "Dalyan", "cat": "spot", "tag": "fishing corner", "note": "Relaxed fishing/seafood area. Watch the boats; ask “Burada balık için nereye gidersiniz?” (where do YOU go?).", "addr": "Dalyan, Çeşme", "lat": 38.323, "lng": 26.3034}, {"id": 92, "dest": "cesme", "area": "Delikli Koy", "side": "Çeşme peninsula", "name": "Delikli Koy", "cat": "spot", "tag": "wild cove", "note": "Rocky cove with natural arches and clear water. Bring your own everything, no beach club. ~1.5–2 hrs.", "addr": "Delikli Koy, Çeşme", "lat": 38.2424, "lng": 26.3584}, {"id": 93, "dest": "ist", "area": "Kuruçeşme", "side": "European side · Bosphorus", "name": "Suada (Galatasaray Adası)", "cat": "exp", "tag": "island dining", "note": "Dinner on a private islet in the middle of the Bosphorus — a free shuttle boat (~165m) runs from Kuruçeşme Park, right under the first bridge. Seven restaurants + an Olympic pool; the setting is the whole point. Confirm which venues are open for early October before you go.", "addr": "Kuruçeşme Park shuttle, Muallim Naci Cd., Kuruçeşme, Beşiktaş", "lat": 41.0575, "lng": 29.0368}, {"id": 94, "dest": "ist", "area": "Cihangir", "side": "European side · Beyoğlu", "name": "Van Kahvaltı Evi", "cat": "food", "tag": "breakfast · Kurdish", "note": "The elaborate Van-region Kurdish breakfast — 15+ small plates: herbed otlu cheese, kaymak (clotted cream), murtuğa, honeycomb, tahini + molasses. A completely different kahvaltı from the usual. Weekend queues form, so go on a weekday.", "addr": "Cihangir, Defterdar Yokuşu No:52/A, Beyoğlu", "lat": 41.0305, "lng": 28.9835}, {"id": 95, "dest": "ist", "area": "Kadınlar Pazarı", "side": "European side · Fatih", "name": "Siirt Şeref Büryan", "cat": "food", "tag": "meat · büryan", "note": "Büryan kebabı — whole lamb slow-roasted ~2 hrs in a sealed underground pit, served on soft bread; add the perde pilavı (rice baked inside a pastry crust). A Siirt specialty in Fatih's Kadınlar Pazarı, the city's 'Little Kurdistan'. 100+ years, cheap, unforgettable.", "addr": "İtfaiye Cd. No:4, Kadınlar Pazarı, Zeyrek, Fatih", "lat": 41.017, "lng": 28.955}, {"id": 96, "dest": "ist", "area": "Samatya", "side": "European side · Fatih", "name": "Develi (Samatya)", "cat": "food", "tag": "meat · Gaziantep", "note": "The grand Gaziantep kebab house (roots to 1912; in Istanbul since 1966). Fıstıklı (pistachio) kebap, çiğ köfte, and künefe to finish — once named among the Observer's 'Best 100 restaurants in the world'. The white-tablecloth take on southeastern cuisine.", "addr": "Gümüşyüzük Sok. No:7, Samatya, Fatih", "lat": 40.994, "lng": 28.933}, {"id": 97, "dest": "ist", "area": "Edirnekapı", "side": "European side · Fatih", "name": "Chora / Kariye Mosque", "cat": "spot", "tag": "Byzantine · mosaics", "note": "The finest Byzantine mosaics and frescoes anywhere — gold-ground ceilings in quiet Edirnekapı, far from the Sultanahmet crush. Under-visited; pair it with Fener–Balat, a short hop away. Go on a weekday.", "addr": "Dervişali, Kariye Cami Sk. No:18, Edirnekapı, Fatih", "lat": 41.0311, "lng": 28.9394}, {"id": 98, "dest": "ist", "area": "Beşiktaş", "side": "European side · Bosphorus", "name": "Dolmabahçe Palace", "cat": "spot", "tag": "palace · opulence", "note": "The last Ottoman imperial palace on the Bosphorus — a crystal staircase, a 4.5-tonne chandelier, gold-leaf ceilings, a waterfront façade. Book the timed Selamlık + Harem ticket ahead; it sells out. No interior photos.", "addr": "Vişnezade, Dolmabahçe Cd., Beşiktaş", "lat": 41.0392, "lng": 29.0003}, {"id": 99, "dest": "ist", "area": "Eminönü", "side": "European side · Fatih", "name": "Rüstem Pasha Mosque", "cat": "spot", "tag": "mosque · İznik tiles", "note": "A small Sinan mosque above the Spice Bazaar, walls sheathed in the most beautiful İznik tilework in the city — turquoise, cobalt, coral. Climb the hidden staircase off the street. A 10-minute wonder near Eminönü.", "addr": "Rüstem Paşa, Hasırcılar Cd., Eminönü, Fatih", "lat": 41.0173, "lng": 28.9701}, {"id": 100, "dest": "ist", "area": "Üsküdar · Salacak", "side": "Asian side · Üsküdar", "name": "Maiden's Tower (Kız Kulesi)", "cat": "exp", "tag": "islet · sunset", "note": "The restored little tower on its own islet off Salacak. Take the short boat over near golden hour for a 360° Bosphorus panorama with the old city lit up. Slots straight into an Üsküdar/Kadıköy day.", "addr": "Salacak, Üsküdar (boat from Salacak / Kabataş)", "lat": 41.0211, "lng": 29.0041}, {"id": 101, "dest": "ist", "area": "Büyükada", "side": "Princes’ Islands · Adalar", "name": "Büyükada (Princes’ Islands)", "cat": "exp", "tag": "car-free island", "note": "The largest Princes’ Island — largely car-free, pine forest and Belle Époque mansions, capped by the hilltop Aya Yorgi monastery with sweeping sea views. Take the public ferry from Kadıköy/Eminönü (not a tour). A full serene day.", "addr": "Büyükada, Adalar (ferry from Kadıköy / Eminönü)", "lat": 40.8577, "lng": 29.12}, {"id": 102, "dest": "ist", "area": "Kadıköy (ferry)", "side": "Asian side · Kadıköy", "name": "Hush Hostel Lounge", "cat": "stay", "tag": "Social · €12–18", "note": "Social, work-leaning. Mixed + female dorms. Garden, rooftop and shared kitchen; staff run BBQs, live-music and movie nights — easy to meet people, right by the Kadıköy ferry. Budget dorm ~€12–18/night. Tip: the newer building has better bathrooms.", "addr": "Rasimpaşa, Rıhtım Cd., İskele Sok. No:46, Kadıköy", "lat": 40.9922, "lng": 29.0232}, {"id": 103, "dest": "ist", "area": "Moda", "side": "Asian side · Kadıköy", "name": "Hush Hostel Moda", "cat": "stay", "tag": "Social · €12–18", "note": "Social. Mixed dorms. Sister of Hush Lounge but in leafier Moda — same BBQ/live-music community, quieter street. ~€12–18/night.", "addr": "Caferağa, Moda, Kadıköy", "lat": 40.9858, "lng": 29.0268}, {"id": 104, "dest": "ist", "area": "Kadıköy", "side": "Asian side · Kadıköy", "name": "Yolo Hostel", "cat": "stay", "tag": "Social · €11–17", "note": "Social all-rounder. Mixed + female dorms. Modern, newly renovated, dead-center Kadıköy; built to get solo travelers mixing day and night. ~€11–17/night.", "addr": "Caferağa, Kadıköy", "lat": 40.9905, "lng": 29.0258}, {"id": 105, "dest": "ist", "area": "Kadıköy", "side": "Asian side · Kadıköy", "name": "Kalkedon Hostel", "cat": "stay", "tag": "Chill · €10–15", "note": "Chill / budget. Male, female and mixed dorms in a renovated historic building; rated one of the safest cheap beds in Kadıköy. ~€10–15/night.", "addr": "Osmanağa, Kadıköy", "lat": 40.9948, "lng": 29.0242}, {"id": 106, "dest": "ist", "area": "Yeldeğirmeni", "side": "Asian side · Kadıköy", "name": "Nest Digital Nomad House", "cat": "stay", "tag": "Work · €18–28", "note": "Work-focused. Coworking space, ~500 Mbps WiFi, garden, weekly events (chess nights, workshops) — a nomad house, not a party spot. Rasimpaşa/Yeldeğirmeni, Kadıköy. ~€18–28/night (often weekly/monthly rates). Note: the listing \"Digital Nomad House\" is the same building.", "addr": "Rasimpaşa, Onan Sk. No:3, Kadıköy", "lat": 40.9978, "lng": 29.0262}, {"id": 107, "dest": "ist", "area": "Ataşehir", "side": "Asian side · Ataşehir", "name": "Manu Startup House", "cat": "stay", "tag": "Work · €15–22", "note": "Work / networking. Built for remote workers and founders — desks, offices, monitors, startup community — which overlaps your Fintech-Week plan. Ataşehir (Asian side, near Bostancı metro, ~20 min east of Kadıköy). Mixed dorms. ~€15–22/night.", "addr": "İçerenköy, Ertaç Sok., Ardıl İş Merkezi No:4, Ataşehir", "lat": 40.964, "lng": 29.098}, {"id": 108, "dest": "ist", "area": "Sultanahmet", "side": "European side · Sultanahmet", "name": "Cheers Hostel", "cat": "stay", "tag": "Party · €14–22", "note": "Party. On-site bar 08:00–04:00, nightly pub crawls, beer pong, karaoke, sangria nights. Under the Hagia Sophia, mixed dorms. ~€14–22/night. Far from Kadıköy — a base for the Old City, not the Asian side.", "addr": "Alemdar, Zeynep Sultan Camii Sok. No:21, Sultanahmet", "lat": 41.0088, "lng": 28.9795}, {"id": 109, "dest": "ist", "area": "Sultanahmet", "side": "European side · Sultanahmet", "name": "Bahaus Guesthouse", "cat": "stay", "tag": "Party · €12–20", "note": "Party. Wild rooftop scene, rakı shots with Marmara views, weekend pub crawls. Cankurtaran/Sultanahmet, mixed dorms. ~€12–20/night.", "addr": "Cankurtaran, Akbıyık, Sultanahmet", "lat": 41.0052, "lng": 28.9782}, {"id": 110, "dest": "ist", "area": "Sultanahmet", "side": "European side · Sultanahmet", "name": "Sultan Hostel", "cat": "stay", "tag": "Party · €13–20", "note": "Party. Own bar/café, cheap food + drink, organized pub crawls on the Akbıyık hostel strip. Mixed dorms. ~€13–20/night.", "addr": "Akbıyık Cd. No:21, Cankurtaran, Sultanahmet", "lat": 41.0049, "lng": 28.9788}, {"id": 111, "dest": "ist", "area": "Sirkeci", "side": "European side · Sirkeci", "name": "Harmony Hostel", "cat": "stay", "tag": "Social · €10–16", "note": "Social / budget. Cheap and friendly, calmer than the Sultanahmet party trio; terrace, near Sirkeci station. Mixed dorms. ~€10–16/night.", "addr": "Hocapaşa, Sirkeci, Fatih", "lat": 41.0098, "lng": 28.9772}];
+  const CAT_COLORS = {food:"#C1272D",spot:"#1C1C1E",exp:"#C69214",work:"#7A7570",stay:"#1E7E86"};
+  const CAT_ICON = {food:"🍖",spot:"📸",exp:"✨",work:"💼",stay:"🛏"};
+  const CAT_LABEL = {food:"Food",spot:"Spot",exp:"Experience",work:"Work",stay:"Stay"};
+  const DEST_VIEW = {ist:{c:[41.02,29.00],z:11}, cesme:{c:[38.29,26.36],z:12}};
+  let map, markers={}, activeCat="all", searchTerm="", dest="ist";
+
+  // plan persistence
+  const PLAN_KEY='istanbul-guide-plan'; let numDays=10; let plan={};
+  function loadPlan(){try{const d=JSON.parse(localStorage.getItem(PLAN_KEY)||'{}');numDays=Math.min(10,Math.max(1,d.numDays||10));plan={};if(d.plan)for(const k in d.plan){const id=+k,day=+d.plan[k];if(activities.some(a=>a.id===id)&&day>=1&&day<=numDays)plan[id]=day;}}catch(e){numDays=10;plan={};}}
+  function savePlan(){try{localStorage.setItem(PLAN_KEY,JSON.stringify({numDays,plan}));}catch(e){}}
+  loadPlan();
+
+  map=L.map('map',{zoomControl:true,attributionControl:false}).setView(DEST_VIEW.ist.c,DEST_VIEW.ist.z);
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',{maxZoom:19}).addTo(map);
+
+  function makeIcon(a){return L.divIcon({className:'',iconSize:[30,30],iconAnchor:[15,15],
+    html:`<div style="width:28px;height:28px;border-radius:50%;background:#fff;border:2px solid ${CAT_COLORS[a.cat]};box-shadow:0 1px 5px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;font-size:15px;line-height:1;">${CAT_ICON[a.cat]}</div>`});}
+  function popupHtml(a){return `<div class="pop-name">${a.name}</div><div class="pop-hood">${a.area} · ${a.side}</div><div class="pop-desc">${a.note}</div>`;}
+  activities.forEach(a=>{const m=L.marker([a.lat,a.lng],{icon:makeIcon(a)}).bindPopup(popupHtml(a));
+    m.bindTooltip(a.name,{permanent:true,direction:'top',offset:[0,-16],className:'place-label',interactive:true});markers[a.id]=m;});
+
+  const LABEL_ZOOM=15;
+  function refreshLabels(){map.getContainer().classList.toggle('labels-on',map.getZoom()>=LABEL_ZOOM);}
+  map.on('zoomend',refreshLabels);
+
+  function syncMarkers(){
+    activities.forEach(a=>{const on=visible(a);if(on&&!map.hasLayer(markers[a.id]))markers[a.id].addTo(map);
+      else if(!on&&map.hasLayer(markers[a.id]))map.removeLayer(markers[a.id]);});
+    refreshLabels();
+  }
+  syncMarkers();
+
+  let routeLine=null, routeMarkers=[], routeMode=false;
+  function clearRoute(){if(routeLine){map.removeLayer(routeLine);routeLine=null;}routeMarkers.forEach(m=>map.removeLayer(m));routeMarkers=[];routeMode=false;document.getElementById('route-banner').classList.remove('show');syncMarkers();}
+  function showDayRoute(day){
+    clearRoute();
+    const ids=Object.keys(plan).map(Number).filter(id=>plan[id]===day&&(activities.find(a=>a.id===id)||{}).dest===dest);
+    if(!ids.length){alert('No Day '+day+' stops in this destination \u2014 switch \u0130stanbul/\u00c7e\u015fme to match.');return;}
+    let pts=ids.map(id=>{const a=activities.find(x=>x.id===id);return{lat:a.lat,lng:a.lng,name:a.name,area:a.area};});
+    let ordered=[pts.shift()];
+    while(pts.length){const last=ordered[ordered.length-1];let bi=0,bd=1e9;
+      pts.forEach((pt,i)=>{const dd=(pt.lat-last.lat)**2+(pt.lng-last.lng)**2;if(dd<bd){bd=dd;bi=i;}});
+      ordered.push(pts.splice(bi,1)[0]);}
+    routeMode=true;
+    activities.forEach(a=>{if(map.hasLayer(markers[a.id]))map.removeLayer(markers[a.id]);});
+    const latlngs=ordered.map(pt=>[pt.lat,pt.lng]);
+    ordered.forEach((pt,i)=>{const mk=L.marker([pt.lat,pt.lng],{icon:L.divIcon({className:'',iconSize:[30,30],iconAnchor:[15,15],html:`<div class="route-pin">${i+1}</div>`})}).addTo(map).bindPopup(`<div class="pop-name">${i+1}. ${pt.name}</div><div class="pop-hood">${pt.area}</div>`);routeMarkers.push(mk);});
+    routeLine=L.polyline(latlngs,{color:'#8E1B21',weight:2.5,dashArray:'5,7',opacity:.85}).addTo(map);
+    if(latlngs.length>1)map.fitBounds(routeLine.getBounds().pad(0.35));else map.setView(latlngs[0],15);
+    document.getElementById('itin-popup').classList.remove('open');
+    document.getElementById('route-banner-text').textContent=`Day ${day} route \u00b7 ${ordered.length} stop${ordered.length>1?'s':''}`;
+    document.getElementById('route-banner').classList.add('show');
+  }
+  document.getElementById('route-exit').addEventListener('click',clearRoute);
+
+  const mapsSearch=a=>'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(a.name+' '+a.addr+' '+(a.dest==='ist'?'Istanbul':'Çeşme'));
+  const menuSearch=a=>'https://www.google.com/search?q='+encodeURIComponent(a.name+' '+a.area+' '+(a.dest==='ist'?'Istanbul':'Çeşme')+' menu');
+  const bookSearch=a=>'https://www.google.com/search?q='+encodeURIComponent(a.name+' Istanbul hostel book');
+
+  function visible(a){
+    if(a.dest!==dest) return false;
+    if(activeCat!=='all' && a.cat!==activeCat) return false;
+    const t=searchTerm.toLowerCase();
+    return !t || a.name.toLowerCase().includes(t)||a.area.toLowerCase().includes(t)||a.note.toLowerCase().includes(t)||a.tag.toLowerCase().includes(t);
+  }
+  function renderCards(){
+    const wrap=document.getElementById('cards');
+    const list=activities.filter(visible);
+    if(!list.length){wrap.innerHTML='<div class="empty">No places match. Try another filter or search.</div>';return;}
+    wrap.innerHTML=list.map(a=>`
+      <div class="card cat-${a.cat}" data-id="${a.id}">
+        <div class="card-top">
+          <div><div class="card-name">${a.name}</div><div class="card-hood">${a.area} · ${a.side}</div></div>
+          <span class="card-tag tag-${a.cat}">${a.tag}</span>
+        </div>
+        <div class="card-desc">${a.note}</div>
+        <div class="card-addr">📍 ${a.addr}</div>
+        <div class="card-actions">
+          <button class="btn btn-add" data-add="${a.id}">＋ Plan</button>
+          <a class="btn btn-map" target="_blank" rel="noopener" href="${mapsSearch(a)}">Open in Maps ↗</a>
+          ${a.cat==='food'?`<a class="btn btn-menu" target="_blank" rel="noopener" href="${menuSearch(a)}">🍽 Menu ↗</a>`:''}
+          ${a.cat==='stay'?`<a class="btn btn-menu" target="_blank" rel="noopener" href="${bookSearch(a)}">🛏 Book ↗</a>`:''}
+        </div>
+      </div>`).join('');
+    wrap.querySelectorAll('.card').forEach(el=>el.addEventListener('click',e=>{
+      if(e.target.closest('[data-add]')||e.target.closest('a'))return;
+      const a=activities.find(x=>x.id==el.dataset.id);map.flyTo([a.lat,a.lng],16,{duration:.6});markers[a.id].openPopup();}));
+    wrap.querySelectorAll('[data-add]').forEach(btn=>btn.addEventListener('click',e=>{e.stopPropagation();
+      const id=Number(btn.dataset.add);if(numDays===1){plan[id]=1;updateItin();}else openDayChooser(id);}));
+  }
+
+  document.querySelectorAll('.filter-tag').forEach(t=>t.addEventListener('click',()=>{
+    document.querySelectorAll('.filter-tag').forEach(x=>x.classList.remove('active'));t.classList.add('active');
+    activeCat=t.dataset.cat;if(routeMode)clearRoute();renderCards();syncMarkers();}));
+  document.getElementById('search-input').addEventListener('input',e=>{searchTerm=e.target.value;if(routeMode)clearRoute();renderCards();syncMarkers();});
+
+  document.querySelectorAll('.dest-btn').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('.dest-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');
+    dest=b.dataset.dest;clearRoute();map.setView(DEST_VIEW[dest].c,DEST_VIEW[dest].z);renderCards();}));
+
+  // itinerary
+  function updateItin(){savePlan();const ids=Object.keys(plan).map(Number);
+    document.getElementById('itin-count').textContent=ids.length;
+    const list=document.getElementById('itin-list');
+    if(!ids.length){list.innerHTML='<div class="itin-empty">Nothing planned yet.<br>Set your trip length here, then tap ＋ Plan on any place and choose a day.</div>';return;}
+    let html='';
+    for(let day=1;day<=numDays;day++){const dayIds=ids.filter(id=>plan[id]===day);
+      html+=`<div class="itin-day-head">Day ${day}${dayIds.length?`<button class="day-route-btn" data-route="${day}">🗺 Show route</button>`:''}</div>`;
+      if(!dayIds.length){html+='<div class="itin-day-empty">—</div>';continue;}
+      html+=dayIds.map(id=>{const a=activities.find(x=>x.id===id);
+        return `<div class="itin-item"><div><div class="itin-item-name">${a.name}</div><div class="itin-item-hood">${a.area} · ${CAT_LABEL[a.cat]}</div></div><button class="itin-remove" data-rm="${id}">✕</button></div>`;}).join('');}
+    list.innerHTML=html;
+    list.querySelectorAll('[data-rm]').forEach(b=>b.addEventListener('click',()=>{delete plan[Number(b.dataset.rm)];updateItin();}));
+    list.querySelectorAll('[data-route]').forEach(b=>b.addEventListener('click',()=>showDayRoute(Number(b.dataset.route))));}
+  let pendingAdd=null;
+  function openDayChooser(id){pendingAdd=id;const dl=document.getElementById('day-list');let h='';
+    for(let d=1;d<=numDays;d++)h+=`<button data-day="${d}">Day ${d}</button>`;dl.innerHTML=h;
+    dl.querySelectorAll('[data-day]').forEach(btn=>btn.addEventListener('click',()=>{plan[pendingAdd]=Number(btn.dataset.day);pendingAdd=null;document.getElementById('day-popup').classList.remove('open');updateItin();}));
+    document.getElementById('day-popup').classList.add('open');}
+  document.getElementById('day-popup').addEventListener('click',e=>{if(e.target.id==='day-popup'){e.target.classList.remove('open');pendingAdd=null;}});
+  document.getElementById('day-close').addEventListener('click',()=>document.getElementById('day-popup').classList.remove('open'));
+  const daySel=document.getElementById('day-count');daySel.value=String(numDays);
+  daySel.addEventListener('change',()=>{numDays=Number(daySel.value);for(const id in plan)if(plan[id]>numDays)plan[id]=numDays;updateItin();});
+  document.getElementById('itin-fab').addEventListener('click',()=>document.getElementById('itin-popup').classList.add('open'));
+  document.getElementById('itin-close').addEventListener('click',()=>document.getElementById('itin-popup').classList.remove('open'));
+  document.getElementById('itin-popup').addEventListener('click',e=>{if(e.target.id==='itin-popup')e.target.classList.remove('open');});
+
+  // tips popup
+  document.getElementById('tips-open').addEventListener('click',()=>document.getElementById('tips-popup').classList.add('open'));
+  document.getElementById('tips-close').addEventListener('click',()=>document.getElementById('tips-popup').classList.remove('open'));
+  document.getElementById('tips-popup').addEventListener('click',e=>{if(e.target.id==='tips-popup')e.target.classList.remove('open');});
+
+  // locate me
+  let youDot,youRing;
+  const locateCtrl=L.control({position:'topright'});
+  locateCtrl.onAdd=function(){const d=L.DomUtil.create('div','leaflet-bar locate-ctrl');
+    d.innerHTML='<a href="#" role="button" title="Show my location">📍</a>';
+    L.DomEvent.on(d,'click',L.DomEvent.stop).on(d,'click',()=>map.locate({setView:true,maxZoom:16,enableHighAccuracy:true}));return d;};
+  locateCtrl.addTo(map);
+  map.on('locationfound',e=>{if(youDot){youDot.setLatLng(e.latlng);youRing.setLatLng(e.latlng).setRadius(e.accuracy/2);}
+    else{youRing=L.circle(e.latlng,{radius:e.accuracy/2,color:'#1a73e8',weight:1,fillColor:'#1a73e8',fillOpacity:.12}).addTo(map);
+      youDot=L.circleMarker(e.latlng,{radius:7,color:'#fff',weight:2,fillColor:'#1a73e8',fillOpacity:1}).addTo(map).bindTooltip('You are here');}});
+  map.on('locationerror',()=>alert('Could not get your location — allow location access and try again.'));
+
+  renderCards();updateItin();
+  </script>
+</body>
+</html>
