@@ -110,13 +110,25 @@
     .day-route-btn{float:right;background:var(--teal);color:#fff;border:none;border-radius:14px;
       padding:.14rem .6rem;font-family:'Inter';font-size:.6rem;font-weight:700;cursor:pointer;letter-spacing:.03em;text-transform:none;}
     .day-route-btn:hover{background:#333;}
-    .route-banner{position:fixed;top:.7rem;left:50%;transform:translateX(-50%);z-index:1002;display:none;
-      align-items:center;gap:.7rem;background:var(--dark);color:#F4F1E9;border-radius:24px;
-      padding:.4rem .5rem .4rem 1rem;box-shadow:0 6px 20px rgba(0,0,0,.3);font-family:'Inter';font-size:.8rem;font-weight:600;}
-    .route-banner.show{display:flex;}
-    .route-banner button{background:rgba(255,255,255,.18);color:#fff;border:none;border-radius:16px;
-      padding:.28rem .75rem;font-family:'Inter';font-size:.72rem;font-weight:700;cursor:pointer;}
-    .route-banner button:hover{background:rgba(255,255,255,.3);}
+    .route-panel{position:fixed;top:.7rem;left:50%;transform:translateX(-50%);z-index:1002;display:none;
+      flex-direction:column;width:min(320px,92vw);max-height:62vh;background:#fff;border:1px solid var(--border);
+      border-radius:14px;box-shadow:0 8px 28px rgba(0,0,0,.28);font-family:'Inter';overflow:hidden;}
+    .route-panel.show{display:flex;}
+    .rp-head{display:flex;align-items:center;justify-content:space-between;background:var(--dark);color:#fff;padding:.55rem .8rem;}
+    .rp-title{font-family:'Fraunces',serif;font-weight:600;font-size:.95rem;}
+    .rp-close{background:rgba(255,255,255,.18);color:#fff;border:none;border-radius:14px;width:24px;height:24px;cursor:pointer;font-size:.8rem;line-height:1;}
+    .rp-close:hover{background:rgba(255,255,255,.32);}
+    .rp-sum{font-size:.72rem;color:var(--mid);padding:.5rem .8rem .25rem;letter-spacing:.01em;}
+    .rp-sum b{color:var(--crimson);}
+    .rp-stops{overflow-y:auto;padding:.15rem .8rem .35rem;}
+    .rp-stop{display:flex;align-items:center;gap:.55rem;padding:.22rem 0;}
+    .rp-num{flex-shrink:0;width:20px;height:20px;border-radius:50%;background:var(--crimson);color:#fff;font-size:.66rem;font-weight:700;display:flex;align-items:center;justify-content:center;}
+    .rp-name{font-size:.82rem;font-weight:600;line-height:1.2;}
+    .rp-seg{font-size:.66rem;color:var(--mid);padding:.02rem 0 .1rem 2.05rem;}
+    .rp-actions{display:flex;gap:.4rem;padding:.55rem .8rem .7rem;border-top:1px solid var(--border);}
+    .rp-btn{flex:1;text-align:center;background:var(--off);color:var(--text);border:none;border-radius:8px;padding:.42rem .5rem;font-family:'Inter';font-size:.7rem;font-weight:700;cursor:pointer;text-decoration:none;transition:all .15s;}
+    .rp-btn:hover{background:#e2dbd5;}
+    .rp-gmaps{background:var(--crimson);color:#fff;} .rp-gmaps:hover{background:#a81e23;}
     .route-pin{width:26px;height:26px;border-radius:50%;background:var(--crimson);color:#fff;border:2px solid #fff;
       box-shadow:0 2px 7px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;font-family:'Inter';}
     @media(max-width:820px){
@@ -126,6 +138,12 @@
       .panel-controls{position:sticky;top:0;z-index:500;}
       .cards{overflow-y:visible;flex:none;min-height:0;}
       #map{height:52vh;width:100%;order:-1;}
+      .hero{padding:.7rem 1rem;gap:.5rem;}
+      .hero-left,.hero-right{width:100%;}
+      .hero-left{gap:.55rem;}
+      .hero-plan{width:100%;padding-left:0;margin-left:0;border-left:none;}
+      .foot-itin{width:100%;justify-content:center;}
+      .hero-right{justify-content:space-between;gap:.5rem;}
     }
   </style>
 </head>
@@ -167,7 +185,12 @@
   </div>
 
 
-  <div class="route-banner" id="route-banner"><span id="route-banner-text"></span><button id="route-exit">Show all ✕</button></div>
+  <div class="route-panel" id="route-panel">
+    <div class="rp-head"><span class="rp-title" id="rp-title">Route</span><button class="rp-close" id="route-exit" title="Show all">✕</button></div>
+    <div class="rp-sum" id="rp-sum"></div>
+    <div class="rp-stops" id="rp-stops"></div>
+    <div class="rp-actions"><button class="rp-btn" id="rp-optimize">↕ Optimize order</button><a class="rp-btn rp-gmaps" id="rp-gmaps" target="_blank" rel="noopener">Open in Google Maps ↗</a></div>
+  </div>
 
   <div class="popup" id="itin-popup">
     <div class="pbox">
@@ -231,28 +254,54 @@
   }
   syncMarkers();
 
-  let routeLine=null, routeMarkers=[], routeMode=false;
-  function clearRoute(){if(routeLine){map.removeLayer(routeLine);routeLine=null;}routeMarkers.forEach(m=>map.removeLayer(m));routeMarkers=[];routeMode=false;document.getElementById('route-banner').classList.remove('show');syncMarkers();}
+  let routeLine=null, routeMarkers=[], routeMode=false, routeStops=[], routeDay=null, routeOpt=false;
+  const _R=6371000, _toRad=d=>d*Math.PI/180;
+  function _hav(a,b){const dLat=_toRad(b.lat-a.lat),dLng=_toRad(b.lng-a.lng),la1=_toRad(a.lat),la2=_toRad(b.lat);const h=Math.sin(dLat/2)**2+Math.cos(la1)*Math.cos(la2)*Math.sin(dLng/2)**2;return 2*_R*Math.asin(Math.sqrt(h));}
+  function _tot(list){let t=0;for(let i=1;i<list.length;i++)t+=_hav(list[i-1],list[i]);return t;}
+  function _nn(pts){if(pts.length<3)return pts.slice();let rem=pts.slice(),ord=[rem.shift()];while(rem.length){const last=ord[ord.length-1];let bi=0,bd=1e18;rem.forEach((pt,i)=>{const d=_hav(last,pt);if(d<bd){bd=d;bi=i;}});ord.push(rem.splice(bi,1)[0]);}return ord;}
+  const _fd=m=>m>=1000?(m/1000).toFixed(1)+' km':Math.round(m/10)*10+' m';
+  const _wm=m=>Math.max(1,Math.round(m/80));
+  function clearRoute(){if(routeLine){map.removeLayer(routeLine);routeLine=null;}routeMarkers.forEach(m=>map.removeLayer(m));routeMarkers=[];routeMode=false;routeStops=[];routeDay=null;routeOpt=false;document.getElementById('route-panel').classList.remove('show');syncMarkers();}
+  function drawRoute(){
+    routeMarkers.forEach(m=>map.removeLayer(m));routeMarkers=[];if(routeLine){map.removeLayer(routeLine);routeLine=null;}
+    activities.forEach(a=>{if(map.hasLayer(markers[a.id]))map.removeLayer(markers[a.id]);});
+    const latlngs=routeStops.map(pt=>[pt.lat,pt.lng]);
+    routeStops.forEach((pt,i)=>{const mk=L.marker([pt.lat,pt.lng],{icon:L.divIcon({className:'',iconSize:[30,30],iconAnchor:[15,15],html:`<div class="route-pin">${i+1}</div>`})}).addTo(map).bindPopup(`<div class="pop-name">${i+1}. ${pt.name}</div><div class="pop-hood">${pt.area}</div>`);routeMarkers.push(mk);});
+    routeLine=L.polyline(latlngs,{color:'#8E1B21',weight:2.5,dashArray:'5,7',opacity:.85}).addTo(map);
+    if(latlngs.length>1)map.fitBounds(routeLine.getBounds().pad(0.35));else if(latlngs.length)map.setView(latlngs[0],15);
+  }
+  function renderRoutePanel(){
+    const n=routeStops.length, tot=_tot(routeStops);
+    document.getElementById('rp-title').textContent=`Day ${routeDay} route`;
+    document.getElementById('rp-sum').innerHTML=`${n} stop${n>1?'s':''} · ${_fd(tot)} · ~${_wm(tot)} min walk`+(routeOpt?' · <b>optimized</b>':'');
+    let h='';routeStops.forEach((pt,i)=>{h+=`<div class="rp-stop"><span class="rp-num">${i+1}</span><span class="rp-name">${pt.name}</span></div>`;if(i<n-1){const d=_hav(pt,routeStops[i+1]);h+=`<div class="rp-seg">↓ ${_fd(d)} · ${_wm(d)} min walk</div>`;}});
+    document.getElementById('rp-stops').innerHTML=h;
+    const pts=routeStops.map(pt=>pt.lat+','+pt.lng);
+    let url='https://www.google.com/maps/dir/?api=1&travelmode=walking&origin='+pts[0]+'&destination='+pts[pts.length-1];
+    if(pts.length>2)url+='&waypoints='+encodeURIComponent(pts.slice(1,-1).join('|'));
+    const g=document.getElementById('rp-gmaps');g.href=url;g.style.display=n>1?'':'none';
+    document.getElementById('rp-optimize').style.display=n>2?'':'none';
+  }
   function showDayRoute(day){
     clearRoute();
     const ids=Object.keys(plan).map(Number).filter(id=>plan[id]===day&&(activities.find(a=>a.id===id)||{}).dest===dest);
-    if(!ids.length){alert('No Day '+day+' stops in this destination \u2014 switch \u0130stanbul/\u00c7e\u015fme to match.');return;}
-    let pts=ids.map(id=>{const a=activities.find(x=>x.id===id);return{lat:a.lat,lng:a.lng,name:a.name,area:a.area};});
-    let ordered=[pts.shift()];
-    while(pts.length){const last=ordered[ordered.length-1];let bi=0,bd=1e9;
-      pts.forEach((pt,i)=>{const dd=(pt.lat-last.lat)**2+(pt.lng-last.lng)**2;if(dd<bd){bd=dd;bi=i;}});
-      ordered.push(pts.splice(bi,1)[0]);}
-    routeMode=true;
-    activities.forEach(a=>{if(map.hasLayer(markers[a.id]))map.removeLayer(markers[a.id]);});
-    const latlngs=ordered.map(pt=>[pt.lat,pt.lng]);
-    ordered.forEach((pt,i)=>{const mk=L.marker([pt.lat,pt.lng],{icon:L.divIcon({className:'',iconSize:[30,30],iconAnchor:[15,15],html:`<div class="route-pin">${i+1}</div>`})}).addTo(map).bindPopup(`<div class="pop-name">${i+1}. ${pt.name}</div><div class="pop-hood">${pt.area}</div>`);routeMarkers.push(mk);});
-    routeLine=L.polyline(latlngs,{color:'#8E1B21',weight:2.5,dashArray:'5,7',opacity:.85}).addTo(map);
-    if(latlngs.length>1)map.fitBounds(routeLine.getBounds().pad(0.35));else map.setView(latlngs[0],15);
+    if(!ids.length){alert('No Day '+day+' stops in this destination — switch İstanbul/Çeşme to match.');return;}
+    routeStops=ids.map(id=>{const a=activities.find(x=>x.id===id);return{id,lat:a.lat,lng:a.lng,name:a.name,area:a.area};});
+    routeDay=day;routeOpt=false;routeMode=true;
+    drawRoute();renderRoutePanel();
     document.getElementById('itin-popup').classList.remove('open');
-    document.getElementById('route-banner-text').textContent=`Day ${day} route \u00b7 ${ordered.length} stop${ordered.length>1?'s':''}`;
-    document.getElementById('route-banner').classList.add('show');
+    document.getElementById('route-panel').classList.add('show');
+  }
+  function optimizeRoute(){
+    if(routeStops.length<3)return;
+    const before=_tot(routeStops), opt=_nn(routeStops), after=_tot(opt);
+    routeStops=opt;routeOpt=true;drawRoute();renderRoutePanel();
+    const saved=before-after, btn=document.getElementById('rp-optimize');
+    btn.textContent=saved>30?('✓ Saved '+_fd(saved)):'✓ Already optimal';
+    setTimeout(()=>{btn.textContent='↕ Optimize order';},2400);
   }
   document.getElementById('route-exit').addEventListener('click',clearRoute);
+  document.getElementById('rp-optimize').addEventListener('click',optimizeRoute);
 
   const mapsSearch=a=>'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(a.name+' '+a.addr+' '+(a.dest==='ist'?'Istanbul':'Çeşme'));
   const menuSearch=a=>'https://www.google.com/search?q='+encodeURIComponent(a.name+' '+a.area+' '+(a.dest==='ist'?'Istanbul':'Çeşme')+' menu');
